@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boarders Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #0b0d12; --text: #e6e9ef; --muted: #6b7489; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+body { display: flex; flex-direction: column; align-items: center; font-family: "Press Start 2P", monospace; }
+.top { width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px 16px; font-size: 10px; color: var(--muted); }
+.top b { color: var(--text); font-weight: normal; }
+.top a { color: #7c8cff; text-decoration: none; }
+.top .spacer { flex: 1; }
+.stage { position: relative; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.tag {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
+  background: rgba(20,18,32,.82); color: #fff; padding: 3px 5px 2px; border-radius: 3px; border-bottom: 2px solid var(--c);
+}
+.dialog {
+  position: relative; margin-top: 12px; background: #fbf8ef; color: #2a2638; border-radius: 10px;
+  border: 4px solid #3a4a6b; box-shadow: inset 0 0 0 3px #a7c0e8, 0 10px 30px rgba(0,0,0,.4);
+  padding: 22px 22px 18px; line-height: 2; min-height: 118px;
+}
+.dialog .who { position: absolute; top: -14px; left: 16px; background: #3a4a6b; color: #fff; padding: 6px 10px 5px; border-radius: 6px; }
+.dialog .card { color: #4a5bd9; cursor: pointer; }
+.dialog .card:hover { text-decoration: underline; }
+.dialog .bar { display: inline-block; vertical-align: middle; width: 120px; height: 10px; border: 2px solid #2a2638; margin: 0 8px; background: #fff; }
+.dialog .bar i { display: block; height: 100%; background: #3ecf8e; }
+.dialog .more { position: absolute; right: 16px; bottom: 10px; animation: blink 1s steps(2) infinite; }
+.dialog .btn { display: inline-block; margin-top: 6px; background: #3a4a6b; color: #fff; padding: 6px 10px 5px; border-radius: 6px; text-decoration: none; }
+@keyframes blink { 50% { opacity: 0; } }
+.note { color: var(--muted); font-size: 8px; margin: 14px 0 20px; text-align: center; line-height: 2; }
+</style>
+</head>
+<body>
+<div class="top"><a href="http://localhost:8765/">◀ Board</a><span>·</span><b>Office</b><span class="spacer"></span><span>MOCKUP · sample data</span></div>
+<div class="stage" id="stage">
+  <canvas id="c"></canvas>
+  <div id="tags"></div>
+  <div class="dialog" id="dialog"></div>
+</div>
+<div class="note">Click a character, or the board on the wall.<br>Atlas walks a loop to show movement between stations.</div>
+
+<script>
+const W = 352, H = 208;
+const cv = document.getElementById("c");
+let g = cv.getContext("2d");
+cv.width = W; cv.height = H;
+let scale = 2;
+
+/* ---------- helpers ---------- */
+const r = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = s => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) * f)));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+
+// Sprites are strings of palette characters; "." is transparent.
+function sprite(rows, pal) {
+  const c = document.createElement("canvas");
+  c.width = rows[0].length; c.height = rows.length;
+  const x = c.getContext("2d");
+  rows.forEach((row, j) => [...row].forEach((ch, i) => {
+    if (ch !== "." && pal[ch]) { x.fillStyle = pal[ch]; x.fillRect(i, j, 1, 1); }
+  }));
+  return c;
+}
+
+// 3x5 pixel font for the few letters drawn into the scene.
+const GLYPHS = {
+  B: ["110","101","110","101","110"], O: ["111","101","101","101","111"], A: ["010","101","111","101","101"],
+  R: ["110","101","110","101","101"], D: ["110","101","101","101","110"], E: ["111","100","110","100","111"],
+  S: ["011","100","010","001","110"], Z: ["111","001","010","100","111"],
+};
+function text(str, x, y, c) {
+  [...str].forEach((ch, k) => (GLYPHS[ch] || []).forEach((row, j) =>
+    [...row].forEach((b, i) => b === "1" && r(x + k * 4 + i, y + j, 1, 1, c))));
+}
+
+/* ---------- characters ---------- */
+const FRONT = [
+  "....KKKKKKKK....", "...KHHHHHHHHK...", "..KHHHHHHHHHHK..", "..KHHHHHHHHHHK..", "..KHhHHHHHHhHK..",
+  "..KhSSSSSSSShK..", "..KSSKSSSSKSSK..", "..KSSKSSSSKSSK..", "..KsSSSSSSSSsK..", "...KsSSSSSSsK...",
+  "....KKKKKKKK....", "...KCCCCCCCCK...", "..KCCCCCCCCCCK..", "..KSKCCCCCCKSK..", "..KSKCCCCCCKSK..",
+  "...KKccccccKK...", "....KPPPPPPK....", "....KPPKKPPK....", "....KPPKKPPK....", "....KBBKKBBK....",
+  ".....KK..KK.....",
+];
+const BACK = [
+  "....KKKKKKKK....", "...KHHHHHHHHK...", "..KHHHHHHHHHHK..", "..KHHHHHHHHHHK..", "..KHHHHHHHHHHK..",
+  "..KHhHHHHHHhHK..", "..KhHHHHHHHHhK..", "..KShhHHHHhhSK..", "...KShhhhhhSK...", "....KKKKKKKK....",
+  "...KCCCCCCCCK...", "..KCCCCCCCCCCK..", "..KSKCCCCCCKSK..", "..KSKCCCCCCKSK..", "...KKccccccKK...",
+  "....KPPPPPPK....", "....KPPKKPPK....", "....KPPKKPPK....", "....KBBKKBBK....", ".....KK..KK.....",
+  "................",
+];
+const SIDE_HEAD = [
+  ".....KKKKKKK....", "....KHHHHHHHK...", "...KHHHHHHHHHK..", "...KHHHHHHHHHK..", "...KHHHHHHHHhK..",
+  "...KHHhSSSSSSK..", "...KHhSSSSKSSK..", "...KHhSSSSKSSK..", "...KhSSSSSSSsK..", "....KsSSSSSsK...",
+  ".....KKKKKKK....", ".....KCCCCK.....", "....KCCCCCCK....", "....KCCSSCCK....", "....KCCSSCCK....",
+  ".....KccccK.....", ".....KPPPPK.....",
+];
+const SIDE_A = [...SIDE_HEAD, "....KPPKKPPK....", "...KPPK..KPPK...", "...KBBK..KBBK...", "....KK....KK...."];
+const SIDE_B = [...SIDE_HEAD, ".....KPPPPK.....", ".....KPPPPK.....", ".....KBBBBK.....", "......KKKK......"];
+
+function makeSprites(a) {
+  const pal = { K: "#262033", H: a.hair, h: shade(a.hair, .72), S: a.skin, s: shade(a.skin, .85),
+                C: a.shirt, c: shade(a.shirt, .75), P: a.pants, B: "#2b2b33" };
+  const flip = rows => rows.map(row => [...row].reverse().join(""));
+  return { front: sprite(FRONT, pal), back: sprite(BACK, pal),
+           right: [sprite(SIDE_A, pal), sprite(SIDE_B, pal)], left: [sprite(flip(SIDE_A), pal), sprite(flip(SIDE_B), pal)] };
+}
+
+/* ---------- the room ---------- */
+const DESKS = [[16, 64], [64, 64], [112, 64], [16, 124], [64, 124], [112, 124]];
+const BOARD = { x: 262, y: 4, w: 80, h: 28 };
+const BENCH = { x: 196, y: 106 };
+const COFFEE = { x: 290, y: 160 };
+
+const agents = [
+  { name: "builder", hair: "#f2c230", skin: "#f2c7a0", shirt: "#e8793a", pants: "#3b4a6b", color: "#c17cff",
+    x: 158, y: 40, face: "back", desk: 0,
+    say: () => ({ status: "Planning at the drawing board.", card: "BRD-3", title: "Office art-direction mockup", done: 1, total: 6,
+                  quote: "Sketching the office layout. Sprites next!" }) },
+  { name: "pixel", hair: "#4a2f22", skin: "#d9a27a", shirt: "#c17cff", pants: "#2e3550", color: "#e879b9",
+    x: BENCH.x + 47, y: BENCH.y - 13, face: "front", desk: 1,
+    say: () => ({ status: "Coding at the workbench.", card: "WEB-12", title: "Signup form validation", done: 3, total: 5,
+                  quote: "Wiring the form to the API." }) },
+  { name: "quill", hair: "#1f2433", skin: "#f0c39b", shirt: "#3ecf8e", pants: "#4a3b2b", color: "#3ecf8e",
+    x: 212, y: 46, face: "back", desk: 3,
+    say: () => ({ status: "Digging through the data cabinet.", card: "DATA-7", title: "Load dimension tables", done: 2, total: 4,
+                  quote: "Profiling the source columns." }) },
+  { name: "nova", hair: "#c9542f", skin: "#f4d0b0", shirt: "#4cc9f0", pants: "#333a4d", color: "#4cc9f0",
+    seated: true, desk: 4, emote: "zzz",
+    say: () => ({ status: "At their desk. Nothing assigned.", quote: "Zzz... waiting for work." }) },
+  { name: "atlas", hair: "#d8d8e0", skin: "#c48a62", shirt: "#f5b14c", pants: "#2b3a2e", color: "#f5b14c",
+    desk: 2, walker: true,
+    say: a => a.phase === "coffee"
+      ? { status: "Blocked. Waiting at the coffee machine.", card: "API-3", title: "Nightly sync job", done: 2, total: 5, quote: "Need DB credentials from the DBA." }
+      : a.phase === "seated"
+      ? { status: "Back at the desk.", card: "API-3", title: "Nightly sync job", done: 2, total: 5, quote: "Checking if the creds arrived..." }
+      : { status: "Walking...", card: "API-3", title: "Nightly sync job", done: 2, total: 5, quote: "..." } },
+];
+agents.forEach(a => a.spr = makeSprites(a));
+// Builder wears a hard hat: a darker band plus a brim over the hair.
+function hardHat(spr) {
+  const band = "#b8860b", brim = "#ffd84a";
+  const paint = (c, cells) => { const x = c.getContext("2d"); cells.forEach(([px, py, w, col]) => { x.fillStyle = col; x.fillRect(px, py, w, 1); }); };
+  paint(spr.front, [[3, 3, 10, band], [1, 4, 14, brim], [1, 5, 1, "#262033"], [14, 5, 1, "#262033"]]);
+  paint(spr.back, [[3, 3, 10, band], [1, 4, 14, brim]]);
+  spr.right.forEach(c => paint(c, [[4, 3, 9, band], [4, 4, 12, brim]]));
+  spr.left.forEach(c => paint(c, [[3, 3, 9, band], [0, 4, 12, brim]]));
+}
+hardHat(agents[0].spr);
+agents.filter(a => a.seated).forEach(a => { const [dx, dy] = DESKS[a.desk]; a.x = dx + 10; a.y = dy + 9; a.face = "back"; });
+
+/* walker loop: desk -> aisle -> coffee -> wait -> back */
+const ex = agents.find(a => a.walker);
+const [edx, edy] = DESKS[ex.desk];
+const SEAT = { x: edx + 10, y: edy + 9 };
+const ROUTE = [[edx + 10, 94], [170, 94], [170, 150], [272, 150]];
+let walk = { phase: "seated", t: 0, path: [], i: 0 };
+ex.x = SEAT.x; ex.y = SEAT.y; ex.seated = true; ex.phase = "seated"; ex.face = "back";
+function startWalk(points, then) { walk = { phase: "walking", path: points, i: 0, then }; ex.seated = false; ex.phase = "walking"; ex.y = Math.max(ex.y, points[0][1] - 4); }
+function stepWalker(dt) {
+  if (walk.phase !== "walking") {
+    walk.t += dt;
+    if (walk.t > 3500) {
+      if (walk.phase === "seated") startWalk(ROUTE, "coffee");
+      else startWalk([...ROUTE].reverse().slice(1).concat([[SEAT.x, 94]]), "seated");
+    }
+    return;
+  }
+  const [tx, ty] = walk.path[walk.i];
+  const sp = dt * 0.035, dx = tx - ex.x, dy = ty - ex.y;
+  if (Math.abs(dx) + Math.abs(dy) <= sp) {
+    ex.x = tx; ex.y = ty; walk.i++;
+    if (walk.i >= walk.path.length) {
+      walk = { phase: walk.then, t: 0 }; ex.phase = walk.phase;
+      if (walk.phase === "seated") { ex.x = SEAT.x; ex.y = SEAT.y; ex.seated = true; ex.face = "back"; ex.emote = null; }
+      else { ex.face = "front"; ex.emote = "dots"; }
+      if (selected === ex) showDialog(ex);
+    }
+    return;
+  }
+  if (Math.abs(dx) > 0.01) { ex.x += Math.sign(dx) * Math.min(sp, Math.abs(dx)); ex.face = dx > 0 ? "right" : "left"; }
+  else { ex.y += Math.sign(dy) * Math.min(sp, Math.abs(dy)); ex.face = dy > 0 ? "front" : "back"; }
+}
+
+/* ---------- static background, drawn once ---------- */
+const bg = document.createElement("canvas"); bg.width = W; bg.height = H;
+(function paintBackground() {
+  const real = g; g = bg.getContext("2d");
+  // floor: warm planks
+  for (let y = 36, row = 0; y < H; y += 8, row++) {
+    r(0, y, W, 8, row % 2 ? "#c48a52" : "#c99058");
+    r(0, y + 7, W, 1, "#a36c3a");
+    for (let x = (row * 23) % 48; x < W; x += 48) r(x, y, 1, 7, "#a8723f");
+    for (let k = 0; k < 18; k++) r(Math.floor(rnd() * W), y + 1 + Math.floor(rnd() * 5), 2, 1, "#b97f49");
+  }
+  // wall
+  r(0, 0, W, 36, "#efe6d0");
+  for (let x = 4; x < W; x += 8) r(x, 3, 1, 29, "#e4d9c0");
+  r(0, 0, W, 3, "#5d4a3a");
+  r(0, 31, W, 5, "#7a5a3e"); r(0, 31, W, 1, "#9a7656");
+  r(0, 36, W, 2, "rgba(0,0,0,.14)");
+  // windows
+  for (const x of [22, 72]) {
+    r(x, 5, 34, 24, "#5d4a3a"); r(x + 2, 7, 30, 20, "#9fd6f2"); r(x + 2, 18, 30, 9, "#bfe6f8");
+    r(x + 6, 11, 9, 2, "#fff"); r(x + 8, 10, 4, 1, "#fff"); r(x + 20, 21, 7, 2, "#fff");
+    r(x + 16, 7, 2, 20, "#5d4a3a"); r(x + 2, 16, 30, 2, "#5d4a3a");
+    r(x - 2, 28, 38, 3, "#d9c7a3"); r(x - 2, 30, 38, 1, "#a89272");
+  }
+  // clock
+  r(235, 6, 8, 10, "#5d4a3a"); r(234, 7, 10, 8, "#5d4a3a"); r(235, 7, 8, 8, "#fffaf0");
+  r(238, 8, 1, 4, "#333"); r(239, 11, 2, 1, "#333");
+  // rugs
+  r(184, 94, 104, 48, "#4a5d7a"); r(186, 96, 100, 44, "#5a6f8f");
+  for (let x = 190; x < 282; x += 6) r(x, 98, 3, 1, "#7f93b3"), r(x, 137, 3, 1, "#7f93b3");
+  r(150, 166, 96, 34, "#7a4a5a"); r(152, 168, 92, 30, "#935a6c");
+  for (let x = 156; x < 240; x += 8) r(x, 182, 4, 2, "#b5788a");
+  // the Boarders board on the wall
+  const b = BOARD;
+  r(b.x, b.y, b.w, b.h, "#6b4a2a"); r(b.x + 2, b.y + 2, b.w - 4, b.h - 4, "#d9a96a");
+  for (let k = 0; k < 40; k++) r(b.x + 3 + Math.floor(rnd() * (b.w - 6)), b.y + 10 + Math.floor(rnd() * 16), 1, 1, "#c48f52");
+  r(b.x + 2, b.y + 2, b.w - 4, 8, "#3a3550"); text("BOARDERS", b.x + 25, b.y + 3, "#f5e6c8");
+  const notes = ["#7c8cff", "#3ecf8e", "#f5b14c", "#e879b9", "#fff3a3"];
+  for (let col = 0; col < 4; col++) {
+    const cx = b.x + 4 + col * 19;
+    if (col) r(cx - 2, b.y + 11, 1, 15, "#b88a50");
+    for (let n = 0; n < 3 - (col === 3 ? 1 : 0) + (col === 0 ? 1 : 0) && n < 3; n++) {
+      const c = notes[(col * 2 + n) % notes.length];
+      r(cx + (n % 2) * 8, b.y + 12 + Math.floor(n / 2) * 7 + (n % 2) * 2, 7, 6, c);
+      r(cx + (n % 2) * 8 + 3, b.y + 12 + Math.floor(n / 2) * 7 + (n % 2) * 2, 1, 1, "#d33");
+    }
+  }
+  r(b.x + 2, b.y + b.h, b.w - 4, 1, "rgba(0,0,0,.2)");
+  g = real;
+})();
+
+/* ---------- furniture (drawn per frame so it depth-sorts with characters) ---------- */
+function plant(x, y) {
+  r(x + 3, y + 13, 10, 9, "#c0643c"); r(x + 2, y + 12, 12, 2, "#d97a4f"); r(x + 4, y + 20, 8, 2, "#9a4c2c");
+  const L = ["#3f8f4f", "#56a95e", "#2f6e3c"];
+  [[6, 0, 4, 6], [2, 4, 5, 5], [9, 3, 5, 6], [4, 7, 8, 5], [0, 8, 5, 4], [11, 8, 5, 4]].forEach(([dx, dy, w, h], i) => r(x + dx, y + dy, w, h, L[i % 3]));
+  r(x + 7, y + 1, 1, 3, "#7cc47f"); r(x + 3, y + 5, 2, 1, "#7cc47f");
+}
+function bookshelf(x) {
+  r(x, 6, 30, 42, "#6e4524"); r(x + 2, 8, 26, 38, "#8d5c31");
+  const cols = ["#d94b4b", "#4a8bd9", "#f5b14c", "#3ecf8e", "#c17cff", "#e8e2d6", "#e879b9"];
+  for (let shelf = 0; shelf < 3; shelf++) {
+    const sy = 8 + shelf * 13;
+    r(x + 2, sy + 11, 26, 2, "#6e4524");
+    let bx = x + 3;
+    for (let k = 0; bx < x + 26; k++) {
+      const w = 2 + ((k + shelf) % 3 === 0 ? 1 : 0), h = 8 + ((k * 3 + shelf) % 3);
+      if ((k + shelf * 2) % 7 === 5) { bx += 3; continue; }
+      r(bx, sy + 11 - h, w, h, cols[(k * 2 + shelf) % cols.length]);
+      r(bx, sy + 11 - h + 2, w, 1, "rgba(255,255,255,.35)");
+      bx += w;
+    }
+  }
+  r(x, 48, 30, 2, "rgba(0,0,0,.18)");
+}
+function sofa(x, y) {
+  r(x + 2, y + 22, 64, 2, "rgba(0,0,0,.18)");
+  r(x + 4, y, 60, 10, "#3f6f73"); r(x + 4, y, 60, 1, "#5f9599");
+  r(x, y + 4, 8, 16, "#335b5e"); r(x + 60, y + 4, 8, 16, "#335b5e"); r(x, y + 4, 8, 1, "#4f8387"); r(x + 60, y + 4, 8, 1, "#4f8387");
+  r(x + 8, y + 10, 52, 8, "#4b8287"); r(x + 8, y + 10, 52, 1, "#6aa3a8"); r(x + 33, y + 10, 1, 8, "#3f6f73");
+  r(x + 8, y + 18, 52, 3, "#2a4a4d");
+  r(x + 12, y + 6, 8, 6, "#f5b14c"); r(x + 48, y + 6, 8, 6, "#e879b9");
+}
+function lamp(x, y) {
+  r(x + 1, y + 26, 8, 2, "rgba(0,0,0,.18)"); r(x + 2, y + 25, 6, 2, "#3a3f4b"); r(x + 4, y + 8, 2, 17, "#3a3f4b");
+  r(x, y, 10, 8, "#fff1c9"); r(x + 1, y + 1, 8, 6, "#ffe49a"); r(x, y + 7, 10, 1, "#e0c070");
+}
+function whiteboard(x) {
+  r(x + 3, 30, 2, 18, "#6b4a2a"); r(x + 27, 30, 2, 18, "#6b4a2a");
+  r(x, 8, 32, 25, "#8a8f99"); r(x + 2, 10, 28, 20, "#fbfbf7");
+  r(x + 5, 13, 7, 4, "#7c8cff"); r(x + 19, 13, 7, 4, "#3ecf8e"); r(x + 12, 23, 8, 4, "#f5b14c");
+  r(x + 12, 15, 7, 1, "#555"); r(x + 16, 17, 1, 6, "#555"); r(x + 5, 20, 5, 1, "#e06666"); r(x + 22, 20, 4, 1, "#e06666");
+  r(x + 1, 32, 30, 2, "#6b6f78"); r(x + 6, 31, 3, 1, "#e33"); r(x + 11, 31, 3, 1, "#33e");
+}
+function cabinets(x) {
+  for (const k of [0, 1]) {
+    const cx = x + k * 16;
+    r(cx, 12, 15, 34, "#6c7787"); r(cx + 1, 13, 13, 32, "#9aa6b5");
+    for (let i = 0; i < 3; i++) {
+      r(cx + 2, 15 + i * 10, 11, 8, "#b3bdca"); r(cx + 5, 18 + i * 10, 5, 2, "#5d6878"); r(cx + 4, 16 + i * 10, 3, 1, "#fff8dc");
+    }
+  }
+  // open drawer with folders
+  r(x + 17, 26, 13, 7, "#c5ced9"); r(x + 17, 32, 13, 1, "#6c7787");
+  ["#f5b14c", "#7c8cff", "#e879b9", "#3ecf8e"].forEach((c, i) => r(x + 18 + i * 3, 24, 2, 4, c));
+  r(x, 46, 31, 2, "rgba(0,0,0,.18)");
+}
+function desk(x, y, screen) {
+  r(x + 2, y + 24, 34, 2, "rgba(0,0,0,.15)");
+  r(x + 1, y + 18, 3, 6, "#6e4524"); r(x + 32, y + 18, 3, 6, "#6e4524");
+  r(x, y, 36, 12, "#b8834e"); r(x, y, 36, 1, "#d39c64"); r(x, y + 12, 36, 6, "#8d5c31"); r(x, y + 12, 36, 1, "#6e4524");
+  r(x + 16, y + 2, 4, 3, "#3a3f4b"); r(x + 10, y - 9, 16, 12, "#2b2f3a");
+  if (screen === "code") {
+    r(x + 11, y - 8, 14, 9, "#16263a");
+    const off = Math.floor(now / 350);
+    for (let i = 0; i < 4; i++) {
+      const w = 3 + ((i + off) * 7) % 9;
+      r(x + 12 + (i % 2) * 2, y - 7 + i * 2, w, 1, ["#7c8cff", "#3ecf8e", "#e879b9", "#f5b14c"][(i + off) % 4]);
+    }
+  } else if (screen === "dim") {
+    r(x + 11, y - 8, 14, 9, "#0d1420");
+  } else {
+    r(x + 11, y - 8, 14, 9, "#1d2a4a");
+    const t = now / 900, px = Math.round(x + 13 + (Math.sin(t) + 1) * 5), py = Math.round(y - 6 + (Math.cos(t * 1.3) + 1) * 2.5);
+    r(px, py, 2, 2, "#7c8cff");
+  }
+  r(x + 11, y + 6, 14, 3, "#d8dce3"); r(x + 11, y + 8, 14, 1, "#aeb4bf");
+  r(x + 29, y + 4, 4, 4, "#f4f1ea"); r(x + 33, y + 5, 1, 2, "#f4f1ea"); r(x + 30, y + 4, 2, 1, "#6b3b1e");
+  r(x + 3, y + 3, 6, 5, "#fff3a3"); r(x + 4, y + 4, 4, 1, "#c9b25b");
+}
+function chairSeat(x, y) { r(x + 12, y + 20, 12, 5, "#414a63"); r(x + 16, y + 25, 4, 3, "#2b3142"); r(x + 13, y + 28, 10, 1, "#2b3142"); }
+function chairBack(x, y) { r(x + 11, y + 20, 14, 7, "#4d5675"); r(x + 11, y + 20, 14, 1, "#6a759a"); r(x + 11, y + 26, 14, 1, "#3a4258"); }
+function bench(x, y) {
+  r(x + 2, y + 28, 72, 2, "rgba(0,0,0,.18)");
+  r(x + 2, y + 20, 4, 8, "#5c3d22"); r(x + 66, y + 20, 4, 8, "#5c3d22");
+  r(x, y, 72, 14, "#a7774a"); r(x, y, 72, 1, "#c99662"); r(x, y + 14, 72, 7, "#7d5532"); r(x, y + 14, 72, 1, "#5c3d22");
+  r(x + 4, y + 3, 13, 8, "#d94b4b"); r(x + 4, y + 3, 13, 2, "#e86a6a"); r(x + 8, y + 1, 5, 2, "#555");
+  r(x + 28, y + 6, 16, 5, "#c9ced6"); r(x + 30, y - 4, 12, 10, "#2b2f3a"); r(x + 31, y - 3, 10, 8, "#1e3a5f");
+  const off = Math.floor(now / 300);
+  for (let i = 0; i < 3; i++) r(x + 32, y - 2 + i * 2, 2 + ((i + off) * 3) % 7, 1, ["#3ecf8e", "#7c8cff", "#f5b14c"][(i + off) % 3]);
+  r(x + 50, y + 4, 16, 4, "#4a8bd9"); r(x + 50, y + 4, 2, 4, "#2f6bb5");
+  r(x + 20, y + 6, 4, 4, "#9aa3ad"); r(x + 21, y + 7, 2, 2, "#5d6670");
+  r(x + 46, y + 9, 3, 3, "#f5b14c");
+}
+function coffee(x, y) {
+  r(x + 2, y + 26, 52, 2, "rgba(0,0,0,.18)");
+  r(x, y, 54, 12, "#e8e2d6"); r(x, y, 54, 1, "#fff"); r(x, y + 12, 54, 14, "#9c8f7a");
+  r(x + 26, y + 13, 1, 12, "#7d725f"); r(x + 22, y + 18, 2, 2, "#5d5444"); r(x + 29, y + 18, 2, 2, "#5d5444");
+  r(x + 5, y - 15, 15, 17, "#3a3f4b"); r(x + 6, y - 14, 13, 4, "#4b5160"); r(x + 15, y - 12, 2, 2, "#ff5555");
+  r(x + 10, y - 6, 4, 2, "#222"); r(x + 9, y - 2, 6, 4, "#fff");
+  const t = Math.floor(now / 250) % 3;
+  r(x + 11 + (t === 1 ? 1 : 0), y - 5 - 4 - t, 1, 2, "rgba(255,255,255,.7)"); r(x + 13 - (t === 2 ? 1 : 0), y - 12 - t, 1, 2, "rgba(255,255,255,.5)");
+  r(x + 33, y - 19, 11, 11, "#8fd3ff"); r(x + 35, y - 17, 2, 6, "#c9ecff"); r(x + 32, y - 8, 13, 9, "#e6e9ef"); r(x + 37, y - 3, 3, 2, "#4a8bd9");
+  r(x + 47, y + 3, 4, 5, "#e879b9"); r(x + 48, y + 1, 2, 2, "#e879b9");
+}
+
+/* ---------- emotes ---------- */
+function bubble(x, y, w, h) {
+  r(x, y, w, h, "#262033"); r(x + 1, y - 1, w - 2, h + 2, "#262033");
+  r(x + 1, y + 1, w - 2, h - 2, "#fff"); r(x + 2, y, w - 4, h, "#fff");
+  r(x + 3, y + h, 3, 2, "#262033"); r(x + 4, y + h, 1, 1, "#fff");
+}
+function emote(a) {
+  const x = Math.round(a.x) + 10, y = Math.round(a.y) - 12 + (Math.floor(now / 500) % 2);
+  if (a.emote === "zzz") { bubble(x, y, 15, 9); text("Z", x + 2, y + 3, "#4a5bd9"); text("Z", x + 7, y + 2, "#4a5bd9"); }
+  if (a.emote === "dots") { bubble(x, y, 15, 8); for (let i = 0; i < 3; i++) r(x + 3 + i * 4, y + 4, 2, 2, "#262033"); }
+}
+
+/* ---------- frame ---------- */
+let now = 0, last = performance.now(), selected = null, hover = null;
+
+function drawAgent(a) {
+  const bob = !a.seated && walk.phase !== "walking" || a !== ex ? (Math.floor(now / 600 + a.name.length) % 2) : 0;
+  let img;
+  if (a.face === "left" || a.face === "right") img = a.spr[a.face][Math.floor(now / 160) % 2];
+  else img = a.spr[a.face];
+  const x = Math.round(a.x), y = Math.round(a.y) + (a.seated ? 0 : -bob * 0);
+  r(x + 3, y + 19, 10, 2, "rgba(0,0,0,.18)");
+  if (a.seated) g.drawImage(img, 0, 0, 16, 15, x, y + (Math.floor(now / 700 + a.name.length) % 2), 16, 15);
+  else g.drawImage(img, x, y - (a !== ex && Math.floor(now / 650 + a.name.length) % 4 === 0 ? 1 : 0));
+}
+
+function frame(t) {
+  const dt = Math.min(50, t - last); last = t; now = t;
+  stepWalker(dt);
+  g.drawImage(bg, 0, 0);
+
+  const items = [];
+  const add = (base, fn) => items.push({ base, fn });
+  add(48, () => whiteboard(150));
+  add(50, () => bookshelf(112));
+  add(190, () => sofa(164, 168));
+  add(196, () => lamp(236, 170));
+  add(46, () => cabinets(196));
+  add(40, () => plant(4, 20));
+  add(40, () => plant(242, 18));
+  add(204, () => plant(4, 182));
+  add(204, () => plant(330, 184));
+  DESKS.forEach(([x, y], i) => {
+    const owner = agents.find(a => a.desk === i && a.seated);
+    const screen = owner ? (owner.emote === "zzz" ? "dim" : "code") : "saver";
+    add(y + 24, () => desk(x, y, screen));
+    add(y + 29, () => chairSeat(x, y));
+    add(y + 30, () => chairBack(x, y));
+  });
+  add(BENCH.y + 30, () => bench(BENCH.x, BENCH.y));
+  add(COFFEE.y + 28, () => coffee(COFFEE.x, COFFEE.y));
+  agents.forEach(a => add(a.seated ? DESKS[a.desk][1] + 26 : a.y + 20, () => drawAgent(a)));
+  items.sort((p, q) => p.base - q.base).forEach(i => i.fn());
+
+  agents.forEach(a => a.emote && emote(a));
+  if (hover === "board") { g.strokeStyle = "#fff3a3"; g.lineWidth = 1; g.strokeRect(BOARD.x - 1.5, BOARD.y - 1.5, BOARD.w + 3, BOARD.h + 3); }
+  if (selected && selected !== "board") {
+    const x = Math.round(selected.x) + 6, y = Math.round(selected.y) - 7 - (Math.floor(now / 300) % 2);
+    r(x, y, 5, 1, "#fff"); r(x + 1, y + 1, 3, 1, "#fff"); r(x + 2, y + 2, 1, 1, "#fff");
+    r(x - 1, y - 1, 7, 1, "#262033");
+  }
+  placeTags();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- name tags, dialog, input ---------- */
+const tagsEl = document.getElementById("tags");
+agents.forEach(a => {
+  a.tag = document.createElement("div"); a.tag.className = "tag"; a.tag.textContent = a.name;
+  a.tag.style.setProperty("--c", a.color); tagsEl.appendChild(a.tag);
+});
+function placeTags() {
+  agents.forEach(a => {
+    a.tag.style.left = (a.x + 8) * scale + "px";
+    a.tag.style.top = (a.y - (a.emote ? 14 : 3)) * scale + "px";
+    a.tag.style.fontSize = Math.max(6, 3 * scale) + "px";
+    a.tag.style.opacity = a === selected || a === hover ? 1 : .8;
+  });
+}
+
+let typing;
+function typeInto(el, html) {
+  clearInterval(typing);
+  const tmp = document.createElement("div"); tmp.innerHTML = html;
+  const nodes = [];
+  (function walkNodes(n) { n.childNodes.forEach(c => c.nodeType === 3 ? nodes.push(c) : walkNodes(c)); })(tmp);
+  const full = nodes.map(n => n.textContent); nodes.forEach(n => n.textContent = "");
+  el.innerHTML = ""; el.appendChild(tmp);
+  let i = 0, j = 0;
+  typing = setInterval(() => {
+    for (let k = 0; k < 2 && i < nodes.length; k++) {
+      nodes[i].textContent = full[i].slice(0, ++j);
+      if (j >= full[i].length) { i++; j = 0; }
+    }
+    if (i >= nodes.length) clearInterval(typing);
+  }, 18);
+}
+
+const dialog = document.getElementById("dialog");
+function showDialog(a) {
+  dialog.style.fontSize = Math.max(8, Math.min(12, 5 * scale)) + "px";
+  if (a === "board") {
+    typeInto(dialog, `<div class="who">BOARDERS</div>A cork board covered in sticky notes.<br>18 open stories across 5 projects.<br><a class="btn" href="http://localhost:8765/">Open the board ▶</a>`);
+    return;
+  }
+  if (!a) {
+    typeInto(dialog, `<div class="who">OFFICE</div>Welcome to the office!<br>Click someone to see what they're working on.<span class="more">▼</span>`);
+    return;
+  }
+  const s = a.say(a);
+  const pct = s.total ? Math.round(100 * s.done / s.total) : 0;
+  typeInto(dialog, `<div class="who" style="background:${a.color};color:#1a1626">${a.name.toUpperCase()}</div>${s.status}<br>` +
+    (s.card ? `<span class="card">${s.card} · ${s.title}</span><br>PLAN<span class="bar"><i style="width:${pct}%"></i></span>${s.done}/${s.total}<br>` : "") +
+    `"${s.quote}"<span class="more">▼</span>`);
+}
+
+function hit(ev) {
+  const rect = cv.getBoundingClientRect();
+  const x = (ev.clientX - rect.left) / scale, y = (ev.clientY - rect.top) / scale;
+  const a = [...agents].reverse().find(a => x >= a.x + 1 && x <= a.x + 15 && y >= a.y - 2 && y <= a.y + (a.seated ? 15 : 21));
+  if (a) return a;
+  if (x >= BOARD.x && x <= BOARD.x + BOARD.w && y >= BOARD.y && y <= BOARD.y + BOARD.h) return "board";
+  return null;
+}
+cv.addEventListener("mousemove", ev => { hover = hit(ev); cv.style.cursor = hover ? "pointer" : "default"; });
+cv.addEventListener("mouseleave", () => hover = null);
+cv.addEventListener("click", ev => { selected = hit(ev); showDialog(selected); });
+
+function fit() {
+  scale = Math.max(1, Math.min(4, Math.floor(Math.min((innerWidth - 32) / W, (innerHeight - 260) / H))));
+  cv.style.width = W * scale + "px"; cv.style.height = H * scale + "px";
+  document.getElementById("stage").style.width = W * scale + "px";
+  showDialog(selected);
+}
+addEventListener("resize", fit);
+fit();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

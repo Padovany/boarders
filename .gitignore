@@ -1,0 +1,7 @@
+data/
+__pycache__/
+*.db-wal
+*.db-shm
+.venv/
+.env
+CLAUDE.local.md

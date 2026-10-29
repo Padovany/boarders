@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boarders</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%237c8cff'/%3E%3Crect x='3' y='3' width='2.5' height='10' rx='.8' fill='%230b0d12'/%3E%3Crect x='6.75' y='3' width='2.5' height='7' rx='.8' fill='%230b0d12'/%3E%3Crect x='10.5' y='3' width='2.5' height='4' rx='.8' fill='%230b0d12'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<aside>
+  <div class="brand">
+    <div class="logo"><svg viewBox="0 0 16 16" fill="#0b0d12"><rect x="1" y="2" width="4" height="12" rx="1"/><rect x="6" y="2" width="4" height="8" rx="1"/><rect x="11" y="2" width="4" height="5" rx="1"/></svg></div>
+    Boarders
+  </div>
+  <div>
+    <div class="nav-title">Views</div>
+    <button class="nav-item" data-view="all">▦ &nbsp;All stories<span class="count" id="cAll"></span></button>
+    <button class="nav-item" data-view="today">☀ &nbsp;Today &amp; in progress<span class="count" id="cToday"></span></button>
+    <button class="nav-item" data-view="inbox" title="Stories agents created that you haven't opened yet">✦ &nbsp;New from agents<span class="count" id="cInbox"></span></button>
+    <button class="nav-item" data-view="blocked">⚑ &nbsp;Blocked<span class="count" id="cBlocked"></span></button>
+    <a class="nav-item" href="/office" title="See your agents at work">⌂ &nbsp;Office</a>
+  </div>
+  <div>
+    <div class="nav-title">Projects <button id="newProjectBtn" title="New project">+</button></div>
+    <div id="projList"></div>
+  </div>
+  <div>
+    <div class="nav-title">Agents</div>
+    <div id="agentList"></div>
+  </div>
+  <div class="aside-foot"><a href="/docs" target="_blank">API docs ↗</a></div>
+</aside>
+
+<main>
+  <header>
+    <div>
+      <h1 id="viewTitle">All stories</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="search">⌕ <input id="search" placeholder="Search stories, keys, prompts…  ( / )"></div>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+    <button class="btn primary" id="newStoryBtn" title="New story (N)">+ New story</button>
+  </header>
+
+  <div class="toolbar">
+    <span class="lbl">Projects</span>
+    <span id="chips"></span>
+    <span class="sep"></span>
+    <label class="lbl">Priority
+      <select id="fPrio" class="mini"><option value="">Any</option><option value="1">P1</option><option value="2">P2</option><option value="3">P3</option></select></label>
+    <label class="lbl">Assignee
+      <select id="fAgent" class="mini"></select></label>
+  </div>
+
+  <div class="board" id="board"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer"></div>
+<div class="modal-wrap" id="modal"></div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

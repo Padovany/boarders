@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boarders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0d12;
+  --bg-2: #11141b;
+  --panel: #151922;
+  --card: #1a1f2a;
+  --card-hover: #202634;
+  --border: #252b38;
+  --border-strong: #323a4b;
+  --text: #e6e9ef;
+  --text-2: #a3abbd;
+  --text-3: #6b7489;
+  --accent: #7c8cff;
+  --accent-soft: rgba(124,140,255,.14);
+  --green: #3ecf8e;
+  --amber: #f5b14c;
+  --red: #f26d6d;
+  --radius: 10px;
+}
+:root[data-theme="light"] {
+  --bg: #f4f5f8; --bg-2: #eceef3; --panel: #ffffff; --card: #ffffff; --card-hover: #f7f8fb;
+  --border: #e2e5ec; --border-strong: #cfd4de; --text: #161a23; --text-2: #4d5568; --text-3: #8a92a5;
+  --accent-soft: rgba(124,140,255,.12);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 14px/1.45 Inter, system-ui, sans-serif;
+  display: grid; grid-template-columns: 240px 1fr; overflow: hidden;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+/* Sidebar */
+aside {
+  background: var(--bg-2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; padding: 16px 12px; gap: 20px; overflow-y: auto;
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+.logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #7c8cff, #c17cff); display: grid; place-items: center; }
+.logo svg { width: 15px; height: 15px; }
+.nav-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); padding: 0 8px 6px; display: flex; justify-content: space-between; align-items: center; }
+.nav-title button { background: none; border: 0; color: var(--text-3); font-size: 16px; line-height: 1; padding: 0 2px; }
+.nav-title button:hover { color: var(--text); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: 0; padding: 7px 8px; border-radius: 7px; color: var(--text-2);
+}
+.nav-item:hover { background: var(--panel); color: var(--text); }
+.nav-item.active { background: var(--accent-soft); color: var(--text); }
+.nav-item .count { margin-left: auto; font-size: 12px; color: var(--text-3); }
+.dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.nav-item.off { opacity: .4; }
+.agent-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; color: var(--text-2); font-size: 13px; }
+.agent-row .status { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.agent-row small { margin-left: auto; color: var(--text-3); font-size: 11px; }
+
+/* Main */
+main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+header {
+  display: flex; align-items: center; gap: 12px; padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+header h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+header .sub { color: var(--text-3); font-size: 13px; }
+.spacer { flex: 1; }
+.search {
+  display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; width: 260px; color: var(--text-3);
+}
+.search input { background: none; border: 0; outline: 0; color: var(--text); font: inherit; width: 100%; }
+.btn { border: 1px solid var(--border-strong); background: var(--panel); padding: 7px 12px; border-radius: 8px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover { background: var(--card-hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #0b0d12; }
+.btn.primary:hover { filter: brightness(1.08); }
+.icon-btn { border: 1px solid var(--border); background: var(--panel); width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--text-2); }
+
+.toolbar { display: flex; gap: 8px; padding: 12px 24px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.chip {
+  border: 1px solid var(--border); background: transparent; color: var(--text-2);
+  padding: 4px 10px; border-radius: 999px; font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center;
+}
+.chip.on { background: var(--panel); border-color: var(--border-strong); color: var(--text); }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+.toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 4px 10px; font-size: 12.5px; color: var(--text-3); }
+.seg button.on { background: var(--panel); color: var(--text); }
+
+/* Board */
+.board { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 1fr); gap: 14px; padding: 18px 24px 24px; overflow: auto; }
+.col { display: flex; flex-direction: column; min-height: 0; background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; }
+.col-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; font-weight: 600; font-size: 13px; }
+.col-head .n { color: var(--text-3); font-weight: 500; background: var(--panel); border-radius: 6px; padding: 0 7px; font-size: 12px; }
+.col-head .wip { margin-left: auto; color: var(--text-3); font-weight: 400; font-size: 11.5px; }
+.col-head .bar { width: 3px; height: 14px; border-radius: 2px; }
+.col-body { flex: 1; overflow-y: auto; padding: 4px 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+.col-body.drop { background: var(--accent-soft); border-radius: 0 0 12px 12px; }
+.add-card { border: 1px dashed var(--border-strong); background: none; color: var(--text-3); border-radius: 8px; padding: 8px; font-size: 13px; }
+.add-card:hover { color: var(--text); border-color: var(--text-3); }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 11px 12px 10px; cursor: grab; position: relative; transition: background .12s, border-color .12s, transform .12s;
+}
+.card::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--pc); }
+.card:hover { background: var(--card-hover); border-color: var(--border-strong); }
+.card.dragging { opacity: .4; }
+.card .top { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-3); margin-bottom: 5px; }
+.card .key { color: var(--text-2); }
+.card .proj { color: var(--pc); font-weight: 500; }
+.card .title { font-weight: 500; margin-bottom: 6px; }
+.card .prompt { color: var(--text-3); font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 9px; }
+.card .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 5px; background: var(--panel); color: var(--text-2); border: 1px solid var(--border); }
+.prio { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; }
+.prio.p1 { color: var(--red); background: rgba(242,109,109,.12); }
+.prio.p2 { color: var(--amber); background: rgba(245,177,76,.12); }
+.prio.p3 { color: var(--text-3); background: var(--panel); }
+.agent { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-2); }
+.agent .av { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #0b0d12; }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(62,207,142,.6); animation: pulse 1.8s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 6px rgba(62,207,142,0); } 100% { box-shadow: 0 0 0 0 rgba(62,207,142,0); } }
+.blocked { color: var(--red); font-size: 11.5px; display: inline-flex; gap: 4px; align-items: center; }
+.progress { height: 3px; background: var(--panel); border-radius: 2px; margin-top: 9px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--green); border-radius: 2px; }
+
+/* Drawer */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100vw); background: var(--panel);
+  border-left: 1px solid var(--border); transform: translateX(100%); transition: transform .25s ease;
+  display: flex; flex-direction: column; box-shadow: -20px 0 60px rgba(0,0,0,.35);
+}
+.drawer.open { transform: none; }
+.d-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--border); }
+.d-head .row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); }
+.d-head h2 { margin: 8px 0 12px; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.fields { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.field label { display: block; font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.field div { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.d-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.tabs button { background: none; border: 0; padding: 0 0 9px; color: var(--text-3); font-weight: 500; border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--text); border-color: var(--accent); }
+.prompt-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  font-family: "JetBrains Mono", monospace; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; color: var(--text-2);
+}
+.prompt-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: var(--text-3); }
+.timeline { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.ev { display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
+.ev .av { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #0b0d12; }
+.ev .who { font-size: 12.5px; color: var(--text-2); }
+.ev .who b { color: var(--text); font-weight: 600; }
+.ev .who span { color: var(--text-3); margin-left: 6px; }
+.ev .msg { margin-top: 3px; font-size: 13px; }
+.ev .msg.box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text-2); }
+.checklist { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.checklist li { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--text-2); }
+.checklist li.done { color: var(--text-3); text-decoration: line-through; }
+.cb { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--border-strong); display: grid; place-items: center; flex: none; }
+li.done .cb { background: var(--green); border-color: var(--green); }
+.d-foot { padding: 12px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+.d-foot input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font: inherit; outline: 0; }
+
+.annot {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #0b0d12;
+  font-size: 12.5px; font-weight: 600; padding: 7px 14px; border-radius: 999px; box-shadow: 0 8px 30px rgba(0,0,0,.4);
+}
+@media (max-width: 760px) {
+  body { grid-template-columns: 1fr; }
+  aside { display: none; }
+  .search { display: none; }
+  .fields { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand">
+    <div class="logo"><svg viewBox="0 0 16 16" fill="#0b0d12"><rect x="1" y="2" width="4" height="12" rx="1"/><rect x="6" y="2" width="4" height="8" rx="1"/><rect x="11" y="2" width="4" height="5" rx="1"/></svg></div>
+    Boarders
+  </div>
+  <div>
+    <div class="nav-title">Boards</div>
+    <button class="nav-item active">▦ &nbsp;All projects<span class="count" id="cAll"></span></button>
+    <button class="nav-item">☀ &nbsp;My day</button>
+    <button class="nav-item">⚑ &nbsp;Blocked<span class="count" id="cBlocked"></span></button>
+  </div>
+  <div>
+    <div class="nav-title">Projects <button title="New project">+</button></div>
+    <div id="projList"></div>
+  </div>
+  <div>
+    <div class="nav-title">Agents</div>
+    <div id="agentList"></div>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <div>
+      <h1>All projects</h1>
+      <div class="sub">Tuesday, Oct 27 · 4 projects · 3 agents active</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="search">⌕ <input placeholder="Search stories, keys, prompts…"></div>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+    <button class="btn primary">+ New story</button>
+  </header>
+
+  <div class="toolbar" id="toolbar">
+    <span style="color:var(--text-3);font-size:12.5px">Projects</span>
+    <span id="chips"></span>
+    <span class="sep"></span>
+    <span style="color:var(--text-3);font-size:12.5px">Group</span>
+    <div class="seg"><button class="on">None</button><button>Project</button><button>Agent</button></div>
+    <span class="sep"></span>
+    <button class="chip">Priority: Any ▾</button>
+    <button class="chip">Assignee: Any ▾</button>
+  </div>
+
+  <div class="board" id="board"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer"></div>
+<div class="annot">Mockup · drag cards between columns · click a card to open it</div>
+
+<script>
+const projects = [
+  { id: "ING", name: "data-ingest",    color: "#7c8cff", agent: "ingest-agent" },
+  { id: "WEB", name: "portal-web",    color: "#3ecf8e", agent: "web-agent" },
+  { id: "RPT", name: "reporting-api", color: "#f5b14c", agent: "reports-agent" },
+  { id: "OPS", name: "infra-ops",     color: "#e879b9", agent: null },
+];
+const agents = [
+  { name: "ingest-agent",  folder: "~/dev/data-ingest",    color: "#7c8cff", status: "working", last: "2m" },
+  { name: "web-agent",     folder: "~/dev/portal-web",    color: "#3ecf8e", status: "working", last: "now" },
+  { name: "reports-agent", folder: "~/dev/reporting-api", color: "#f5b14c", status: "idle",    last: "1h" },
+];
+const columns = [
+  { id: "backlog", name: "Backlog",     color: "#6b7489" },
+  { id: "today",   name: "Today",       color: "#7c8cff", wip: 6 },
+  { id: "doing",   name: "In progress", color: "#3ecf8e", wip: 4 },
+  { id: "review",  name: "Review",      color: "#f5b14c" },
+  { id: "done",    name: "Done",        color: "#a3abbd" },
+];
+let cards = [
+  { key: "ING-21", p: "ING", col: "doing",  title: "Incremental load for claims feed", prio: 1, type: "Story", agent: "ingest-agent", progress: 60,
+    prompt: "Implement incremental loading for the claims feed in src/feeds/claims.py.\n\n- Track a high-water mark (updated_at) per source table in the state store\n- Only pull rows newer than the mark; upsert on claim_id\n- Add unit tests covering empty deltas and late-arriving rows\n- Do NOT change the full-load path\n\nAcceptance: `pytest tests/feeds` passes and a dry run against the sample DB loads < 5% of rows on second run.",
+    checklist: [["Add state store table", 1], ["Watermark read/write", 1], ["Upsert logic", 1], ["Tests for late rows", 0], ["Dry run on sample DB", 0]] },
+  { key: "ING-22", p: "ING", col: "today",  title: "Retry policy for flaky SFTP pulls", prio: 2, type: "Task", agent: "ingest-agent",
+    prompt: "Wrap the SFTP fetcher with exponential backoff (max 5 tries). Log each retry with the file name. Surface a clear error after the final attempt." },
+  { key: "ING-19", p: "ING", col: "review", title: "Schema drift alerts", prio: 2, type: "Story", agent: "ingest-agent",
+    prompt: "Detect new/removed columns in upstream files vs. the registered schema and post a summary to the run log." },
+  { key: "ING-24", p: "ING", col: "backlog", title: "Partition raw zone by load date", prio: 3, type: "Story",
+    prompt: "Write raw files to raw/{source}/load_date=YYYY-MM-DD/. Migrate existing files with a one-off script." },
+  { key: "WEB-08", p: "WEB", col: "doing",  title: "Provider search page with filters", prio: 1, type: "Story", agent: "web-agent", progress: 35,
+    prompt: "Build /providers search page: text search, specialty + state filters, paginated results table. Use existing DataTable component. Mobile friendly." },
+  { key: "WEB-11", p: "WEB", col: "today",  title: "Fix date picker timezone bug", prio: 1, type: "Bug", agent: "web-agent",
+    prompt: "Dates selected in the claim form shift by one day for users west of UTC. Reproduce, fix, add a regression test." },
+  { key: "WEB-12", p: "WEB", col: "backlog", title: "Dark mode for portal", prio: 3, type: "Story",
+    prompt: "Introduce CSS variables for theme tokens and a toggle in the user menu. Persist choice in localStorage." },
+  { key: "WEB-06", p: "WEB", col: "done",   title: "Login page redesign", prio: 2, type: "Story", agent: "web-agent",
+    prompt: "Apply new brand layout to /login." },
+  { key: "RPT-04", p: "RPT", col: "today",  title: "Monthly utilization endpoint", prio: 2, type: "Story", agent: "reports-agent",
+    prompt: "Add GET /reports/utilization?month=YYYY-MM returning aggregated visits per plan. Include OpenAPI docs and tests." },
+  { key: "RPT-05", p: "RPT", col: "doing",  title: "Cache heavy aggregate queries", prio: 2, type: "Task", agent: "reports-agent", blocked: "Waiting on Redis access from DBA", progress: 20,
+    prompt: "Cache results of the 3 slowest report queries for 15 minutes. Invalidate on nightly load completion." },
+  { key: "RPT-02", p: "RPT", col: "backlog", title: "CSV export for all reports", prio: 3, type: "Story",
+    prompt: "Every report endpoint should accept ?format=csv and stream a CSV response." },
+  { key: "RPT-01", p: "RPT", col: "done",   title: "Bootstrap FastAPI service", prio: 2, type: "Task", agent: "reports-agent",
+    prompt: "Scaffold service, health check, Dockerfile." },
+  { key: "OPS-03", p: "OPS", col: "backlog", title: "Nightly DB backup verification", prio: 1, type: "Task",
+    prompt: "Script that restores last night's backup into a scratch container and runs row-count checks." },
+  { key: "OPS-02", p: "OPS", col: "review", title: "CI pipeline for portal-web", prio: 2, type: "Task",
+    prompt: "Lint, test, build on every PR." },
+];
+const activeProjects = new Set(projects.map(p => p.id));
+const proj = id => projects.find(p => p.id === id);
+const agentOf = n => agents.find(a => a.name === n);
+const initials = n => n.split("-").map(s => s[0]).join("").toUpperCase().slice(0, 2);
+
+function renderSidebar() {
+  document.getElementById("projList").innerHTML = projects.map(p => {
+    const n = cards.filter(c => c.p === p.id && c.col !== "done").length;
+    return `<button class="nav-item ${activeProjects.has(p.id) ? "" : "off"}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${p.name}<span class="count">${n}</span></button>`;
+  }).join("");
+  document.getElementById("agentList").innerHTML = agents.map(a =>
+    `<div class="agent-row"><span class="status" style="background:${a.status === "working" ? "var(--green)" : "var(--text-3)"}"></span><span class="mono" style="font-size:12px">${a.name}</span><small>${a.last}</small></div>`).join("");
+  document.getElementById("cAll").textContent = cards.filter(c => c.col !== "done").length;
+  document.getElementById("cBlocked").textContent = cards.filter(c => c.blocked).length;
+  document.getElementById("chips").innerHTML = projects.map(p =>
+    `<button class="chip ${activeProjects.has(p.id) ? "on" : ""}" data-p="${p.id}" style="margin-right:6px"><span class="dot" style="background:${p.color}"></span>${p.name}</button>`).join("");
+  document.querySelectorAll("[data-p]").forEach(el => el.onclick = () => {
+    const id = el.dataset.p;
+    activeProjects.has(id) ? activeProjects.delete(id) : activeProjects.add(id);
+    render();
+  });
+}
+
+function cardHTML(c) {
+  const p = proj(c.p), a = c.agent && agentOf(c.agent);
+  return `<div class="card" draggable="true" data-key="${c.key}" style="--pc:${p.color}">
+    <div class="top"><span class="key mono">${c.key}</span>·<span class="proj">${p.name}</span><span style="margin-left:auto">${c.type}</span></div>
+    <div class="title">${c.title}</div>
+    <div class="prompt">${c.prompt.split("\n")[0]}</div>
+    <div class="meta">
+      <span class="prio p${c.prio}">P${c.prio}</span>
+      ${c.blocked ? `<span class="blocked">⛔ Blocked</span>` : ""}
+      ${a ? `<span class="agent">${c.col === "doing" && !c.blocked ? '<span class="pulse"></span>' : ""}<span class="av" style="background:${a.color}">${initials(a.name)}</span>${a.name}</span>`
+          : `<span class="agent" style="color:var(--text-3)">unassigned</span>`}
+    </div>
+    ${c.progress ? `<div class="progress"><i style="width:${c.progress}%"></i></div>` : ""}
+  </div>`;
+}
+
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = columns.map(col => {
+    const list = cards.filter(c => c.col === col.id && activeProjects.has(c.p));
+    return `<section class="col">
+      <div class="col-head"><span class="bar" style="background:${col.color}"></span>${col.name}<span class="n">${list.length}</span>${col.wip ? `<span class="wip">WIP ${col.wip}</span>` : ""}</div>
+      <div class="col-body" data-col="${col.id}">
+        ${list.map(cardHTML).join("")}
+        ${col.id === "backlog" ? `<button class="add-card">+ Add story</button>` : ""}
+      </div>
+    </section>`;
+  }).join("");
+
+  board.querySelectorAll(".card").forEach(el => {
+    el.addEventListener("dragstart", e => { el.classList.add("dragging"); e.dataTransfer.setData("text/plain", el.dataset.key); });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+    el.addEventListener("click", () => openCard(el.dataset.key));
+  });
+  board.querySelectorAll(".col-body").forEach(body => {
+    body.addEventListener("dragover", e => { e.preventDefault(); body.classList.add("drop"); });
+    body.addEventListener("dragleave", () => body.classList.remove("drop"));
+    body.addEventListener("drop", e => {
+      e.preventDefault(); body.classList.remove("drop");
+      const c = cards.find(x => x.key === e.dataTransfer.getData("text/plain"));
+      if (c) { c.col = body.dataset.col; render(); }
+    });
+  });
+}
+
+function openCard(key) {
+  const c = cards.find(x => x.key === key), p = proj(c.p), a = c.agent && agentOf(c.agent);
+  const col = columns.find(x => x.id === c.col);
+  const av = (name, color) => `<div class="av" style="background:${color}">${initials(name)}</div>`;
+  document.getElementById("drawer").innerHTML = `
+    <div class="d-head">
+      <div class="row"><span class="dot" style="background:${p.color}"></span>${p.name}<span>/</span><span class="mono">${c.key}</span><span class="spacer"></span><button class="icon-btn" id="closeD">✕</button></div>
+      <h2>${c.title}</h2>
+      <div class="fields">
+        <div class="field"><label>Status</label><div><span class="dot" style="background:${col.color};border-radius:50%"></span>${col.name}</div></div>
+        <div class="field"><label>Priority</label><div><span class="prio p${c.prio}">P${c.prio}</span></div></div>
+        <div class="field"><label>Assignee</label><div class="mono" style="font-size:12px">${a ? a.name : "—"}</div></div>
+        <div class="field"><label>Type</label><div>${c.type}</div></div>
+      </div>
+      ${c.blocked ? `<div style="margin-top:12px;padding:8px 10px;border-radius:8px;background:rgba(242,109,109,.1);color:var(--red);font-size:13px">⛔ ${c.blocked}</div>` : ""}
+    </div>
+    <div class="d-body">
+      <div class="tabs"><button class="on">Prompt</button><button>Activity</button><button>History</button></div>
+      <div class="prompt-label"><span>Agent prompt · markdown</span><button class="chip">Copy</button></div>
+      <div class="prompt-box">${c.prompt}</div>
+      ${c.checklist ? `<div style="margin-top:20px;font-size:12px;color:var(--text-3)">Agent plan · ${c.checklist.filter(x => x[1]).length}/${c.checklist.length}</div>
+        <ul class="checklist">${c.checklist.map(([t, d]) => `<li class="${d ? "done" : ""}"><span class="cb">${d ? "✓" : ""}</span>${t}</li>`).join("")}</ul>` : ""}
+      <div style="margin:24px 0 10px;font-size:12px;color:var(--text-3)">Activity</div>
+      <div class="timeline">
+        ${a ? `
+        <div class="ev">${av(a.name, a.color)}<div><div class="who"><b class="mono">${a.name}</b><span>12 min ago</span></div>
+          <div class="msg box">Watermark logic done and tested against sample data. Starting on late-arriving rows next — will need fixture with out-of-order updated_at.</div></div></div>
+        <div class="ev">${av(a.name, a.color)}<div><div class="who"><b class="mono">${a.name}</b><span>48 min ago</span></div>
+          <div class="msg">moved <b>Today → In progress</b></div></div></div>
+        <div class="ev">${av(a.name, a.color)}<div><div class="who"><b class="mono">${a.name}</b><span>9:02 AM</span></div>
+          <div class="msg">claimed this story and added a 5-step plan</div></div></div>` : ""}
+        <div class="ev">${av("You", "#c3c9d6")}<div><div class="who"><b>You</b><span>Yesterday</span></div>
+          <div class="msg">created in <b>Backlog</b></div></div></div>
+      </div>
+    </div>
+    <div class="d-foot"><input placeholder="Comment or instruction for the agent…"><button class="btn">Send</button></div>`;
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("scrim").classList.add("open");
+  document.getElementById("closeD").onclick = closeCard;
+}
+function closeCard() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("scrim").classList.remove("open");
+}
+document.getElementById("scrim").onclick = closeCard;
+document.addEventListener("keydown", e => e.key === "Escape" && closeCard());
+document.getElementById("themeBtn").onclick = () => {
+  const r = document.documentElement;
+  r.dataset.theme = r.dataset.theme === "light" ? "dark" : "light";
+};
+
+function render() { renderSidebar(); renderBoard(); }
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  boarders:
+    build: .
+    container_name: boarders
+    ports:
+      - "127.0.0.1:8765:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      # "true" lets agents move stories to Done themselves.
+      AGENTS_CAN_CLOSE: "${AGENTS_CAN_CLOSE:-false}"
+      # Optional: where the office windows look out to (weather from Open-Meteo, fetched by the browser).
+      # Set these in a .env file next to this one (see .env.example). Leave unset to disable weather.
+      OFFICE_LAT: "${OFFICE_LAT:-}"
+      OFFICE_LON: "${OFFICE_LON:-}"
+      OFFICE_PLACE: "${OFFICE_PLACE:-}"
+    restart: unless-stopped
